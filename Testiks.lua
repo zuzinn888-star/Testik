@@ -1,5 +1,5 @@
--- Krev Hub MM2 - Ultra Modern Edition (Mobile & PC Supported)
--- Features exact requested UI style, toggle icon, and complete functionality set.
+-- Krev Hub MM2 - Ultra Modern Extended Edition (Mobile & PC Supported)
+-- Complete UI layout with full functionality set, custom icon toggle, dark/pink design theme.
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -21,17 +21,17 @@ local function getGuiParent()
 end
 
 local guiParent = getGuiParent()
-local existingGui = guiParent:FindFirstChild("KrevHubMM2")
+local existingGui = guiParent:FindFirstChild("KrevHubMM2Extended")
 if existingGui then existingGui:Destroy() end
 
 local Theme = {
-    background = Color3.fromRGB(15, 15, 18),
-    panel = Color3.fromRGB(22, 22, 26),
-    surface = Color3.fromRGB(30, 30, 35),
-    surfaceHover = Color3.fromRGB(40, 40, 45),
+    background = Color3.fromRGB(12, 12, 16),
+    panel = Color3.fromRGB(18, 18, 24),
+    surface = Color3.fromRGB(26, 26, 34),
+    surfaceHover = Color3.fromRGB(36, 36, 46),
     text = Color3.fromRGB(245, 248, 255),
-    muted = Color3.fromRGB(150, 150, 160),
-    accent = Color3.fromRGB(255, 0, 128), -- Neon Pink/Magenta Accent
+    muted = Color3.fromRGB(140, 140, 155),
+    accent = Color3.fromRGB(255, 0, 128),
     cyan = Color3.fromRGB(0, 220, 255),
     danger = Color3.fromRGB(255, 60, 90),
     success = Color3.fromRGB(50, 230, 120),
@@ -39,20 +39,17 @@ local Theme = {
 
 local state = {
     active = true,
-    -- Main
     roleEsp = false,
     xray = false,
     xrayTransparency = 0.5,
     noclip = false,
     autoFlingSheriff = false,
-    -- Sheriff
     autoPickupGun = false,
     gunEsp = false,
     silentAim = false,
     wallbang = false,
     autoShoot = false,
     autoKill = false,
-    -- Murder
     killAura = false,
     killAll = false,
     killOnlySheriff = false,
@@ -61,18 +58,17 @@ local state = {
     prediction = false,
     predictionLead = 100,
     selectedPlayer = "none",
-    -- Auto Farm
     autoFarm = false,
     autoRespawn = false,
     antiFling = false,
     avoidMurderer = false,
     autoFling = false,
-    -- Troll/Fun
     walkspeedEnabled = false,
     walkspeed = 16,
     jumppowerEnabled = false,
     jumppower = 50,
     touchFling = false,
+    autoEmote = false,
 }
 
 local connections = {}
@@ -114,13 +110,12 @@ local function createText(parent, text, size, font, color)
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KrevHubMM2"
+ScreenGui.Name = "KrevHubMM2Extended"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = guiParent
 
--- Floating Toggle Icon
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "KrevToggle"
 ToggleButton.AnchorPoint = Vector2.new(0, 0.5)
@@ -146,7 +141,7 @@ Window.AnchorPoint = Vector2.new(0.5, 0.5)
 Window.BackgroundColor3 = Theme.background
 Window.BorderSizePixel = 0
 Window.Position = UDim2.fromScale(0.5, 0.5)
-Window.Size = UDim2.fromOffset(800, 480)
+Window.Size = UDim2.fromOffset(820, 500)
 Window.Parent = ScreenGui
 corner(Window, 12)
 
@@ -163,7 +158,7 @@ local function updateScale()
     local camera = Workspace.CurrentCamera
     if not camera then return end
     local viewport = camera.ViewportSize
-    windowScale.Scale = math.clamp(math.min(viewport.X / 850, viewport.Y / 520), 0.5, 1)
+    windowScale.Scale = math.clamp(math.min(viewport.X / 870, viewport.Y / 540), 0.5, 1)
 end
 
 updateScale()
@@ -178,7 +173,6 @@ local function toggleMenu(visible)
 end
 connect(ToggleButton.MouseButton1Click, function() toggleMenu() end)
 
--- Header
 local Header = Instance.new("Frame")
 Header.BackgroundColor3 = Theme.panel
 Header.BorderSizePixel = 0
@@ -204,7 +198,7 @@ Title.Position = UDim2.fromOffset(50, 0)
 Title.Size = UDim2.fromOffset(150, 50)
 Title.TextYAlignment = Enum.TextYAlignment.Center
 
-local Subtitle = createText(Header, "MM2 - v1.0", 11, Enum.Font.GothamMedium, Theme.muted)
+local Subtitle = createText(Header, "Murder Mystery 2", 11, Enum.Font.GothamMedium, Theme.muted)
 Subtitle.Position = UDim2.fromOffset(130, 0)
 Subtitle.Size = UDim2.fromOffset(150, 50)
 Subtitle.TextYAlignment = Enum.TextYAlignment.Center
@@ -223,7 +217,6 @@ CloseBtn.Parent = Header
 corner(CloseBtn, 8)
 connect(CloseBtn.MouseButton1Click, function() toggleMenu(false) end)
 
--- Sidebar
 local Sidebar = Instance.new("ScrollingFrame")
 Sidebar.BackgroundColor3 = Theme.panel
 Sidebar.BorderSizePixel = 0
@@ -505,7 +498,6 @@ local function addLabel(page, text)
     lbl.Size = UDim2.new(1, 0, 0, 20)
 end
 
--- POPULATE TABS
 local mainTab = addTab("Main", "🏠")
 addLabel(mainTab, "Visuals")
 addToggle(mainTab, "Enable Role ESP", state.roleEsp, function(v) state.roleEsp = v end)
@@ -549,11 +541,10 @@ addToggle(funTab, "Jump Power", state.jumppowerEnabled, function(v) state.jumppo
 addSlider(funTab, "Jump Value", 50, 200, 50, function(v) state.jumppower = v end)
 addLabel(funTab, "Misc Options")
 addToggle(funTab, "Touch Fling", state.touchFling, function(v) state.touchFling = v end)
-addToggle(funTab, "Auto Emote (Experimental)", false, function() end)
+addToggle(funTab, "Auto Emote (Experimental)", state.autoEmote, function(v) state.autoEmote = v end)
 
 tabButtons["Main"].btn.MouseButton1Click:Fire()
 
--- Dragging Logic
 local dragging = false
 local dragStart, startPos
 connect(Header.InputBegan, function(input)
