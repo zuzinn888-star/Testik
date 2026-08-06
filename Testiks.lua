@@ -1,7 +1,3 @@
--- Krev Hub MM2 - Ultra Performance Edition
--- Fixed all bugs, stable loops, working bypasses, optimized UI.
--- Created for KREVETKASCRIPTS
-
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local Players = game:GetService("Players")
@@ -38,6 +34,7 @@ local Theme = {
 }
 
 local state = {
+    active = true,
     roleEsp = false, xray = false, xrayStr = 0.5, noclip = false, autoFlingSheriff = false,
     autoPickupGun = false, gunEsp = false, silentAim = false, wallbang = false, autoShoot = false, autoKill = false,
     killAura = false, killAll = false, killOnlySheriff = false, killPlayerTarget = "None",
@@ -93,7 +90,7 @@ stroke.Thickness = 2
 makeDraggable(ToggleBtn)
 
 local Window = Instance.new("Frame")
-Window.Size = UDim2.fromOffset(520, 310)
+Window.Size = UDim2.fromOffset(520, 320)
 Window.Position = UDim2.fromScale(0.5, 0.5)
 Window.AnchorPoint = Vector2.new(0.5, 0.5)
 Window.BackgroundColor3 = Theme.background
@@ -115,7 +112,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -40, 1, 0)
 Title.Position = UDim2.fromOffset(15, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Krev Hub | MM2 - @krevetkascripts"
+Title.Text = "Krev Hub | MM2 Extended"
 Title.TextColor3 = Theme.accent
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
@@ -209,6 +206,7 @@ local function addLabel(page, text)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.LayoutOrder = elementOrder
     lbl.Parent = page
+    return lbl
 end
 
 local function addToggle(page, text, default, callback)
@@ -405,7 +403,7 @@ local function addDropdown(page, text, options, callback)
     return refresh
 end
 
--- === TABS ===
+-- === UI SETUP ===
 local pMain = addTab("Main")
 addLabel(pMain, "Visuals")
 addToggle(pMain, "Enable Role ESP", false, function(v) state.roleEsp = v end)
@@ -444,16 +442,19 @@ addBtn(pMurder, "Teleport & Kill Selected", function()
         if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") and r and k then
             k.Parent = c
             r.CFrame = t.Character.HumanoidRootPart.CFrame
-            task.wait(0.15)
+            task.wait(0.2)
             pcall(function() k:Activate() end)
         end
     end
 end)
 
 local pFarm = addTab("Auto Farm")
+local statusLbl = addLabel(pFarm, "Status: Idle")
 addToggle(pFarm, "Auto Farm Coins", false, function(v) state.autoFarm = v end)
 addToggle(pFarm, "Avoid Murderer", false, function(v) state.avoidMurderer = v end)
 addToggle(pFarm, "Anti-Fling", false, function(v) state.antiFling = v end)
+addToggle(pFarm, "Auto-Respawn", false, function(v) state.autoRespawn = v end)
+addToggle(pFarm, "Auto-Fling", false, function(v) state.autoFling = v end)
 
 local pFun = addTab("Troll Fun")
 addToggle(pFun, "Walk Speed", false, function(v) state.wsEnabled = v end)
@@ -461,12 +462,12 @@ addSlider(pFun, "Speed Value", 16, 150, 16, function(v) state.ws = v end)
 addToggle(pFun, "Jump Power", false, function(v) state.jpEnabled = v end)
 addSlider(pFun, "Jump Value", 50, 200, 50, function(v) state.jp = v end)
 addToggle(pFun, "Touch Fling", false, function(v) state.touchFling = v end)
-addToggle(pFun, "Auto Emote (Server)", false, function(v) state.autoEmote = v end)
-addDropdown(pFun, "Select Emote", {"ninja", "zombie", "vampire", "robot", "floss", "zen"}, function(v) state.selectedEmote = v end)
+addToggle(pFun, "Auto Emote", false, function(v) state.autoEmote = v end)
+addDropdown(pFun, "Select Emote", {"ninja", "zombie", "vampire", "robot", "floss", "zen", "sit"}, function(v) state.selectedEmote = v end)
 
 tabs["Main"].btn.MouseButton1Click:Fire()
 
--- === CORE SCRIPTS ===
+-- === CORE LOGIC ===
 
 local espFolder = Workspace:FindFirstChild("KrevHubESP")
 if not espFolder then
@@ -476,11 +477,15 @@ if not espFolder then
 end
 
 local function getRole(player)
+    if not player or not player.Character then return "Innocent" end
     local char = player.Character
-    if not char then return "Innocent" end
     local bp = player:FindFirstChildOfClass("Backpack")
-    if char:FindFirstChild("Knife") or (bp and bp:FindFirstChild("Knife")) then return "Murderer" end
-    if char:FindFirstChild("Gun") or (bp and bp:FindFirstChild("Gun")) then return "Sheriff" end
+    
+    local hasKnife = char:FindFirstChild("Knife") or (bp and bp:FindFirstChild("Knife"))
+    local hasGun = char:FindFirstChild("Gun") or (bp and bp:FindFirstChild("Gun"))
+    
+    if hasKnife then return "Murderer" end
+    if hasGun then return "Sheriff" end
     return "Innocent"
 end
 
@@ -498,22 +503,17 @@ local function createESP(model, color, name)
     hl.OutlineColor = color
 end
 
--- Render/Stepped Loops
+-- RenderStepped logic (ESP, Speed, Jump)
 RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    
-    -- Speed / Jump
-    if state.wsEnabled and char then
+    if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = state.ws end
-    end
-    if state.jpEnabled and char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.JumpPower = state.jp end
+        if hum then
+            if state.wsEnabled then hum.WalkSpeed = state.ws end
+            if state.jpEnabled then hum.JumpPower = state.jp end
+        end
     end
 
-    -- ESP Logic
     if state.roleEsp then
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -540,37 +540,52 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- Physics Logic (NoClip, XRay)
 RunService.Stepped:Connect(function()
     local char = LocalPlayer.Character
-    if state.noclip and char then
-        for _, p in pairs(char:GetDescendants()) do 
-            if p:IsA("BasePart") then p.CanCollide = false end 
-        end
-    end
-    if state.xray then
-        for _, p in pairs(Workspace:GetDescendants()) do
-            if p:IsA("BasePart") and not p:IsDescendantOf(char) and not p.Parent:FindFirstChildOfClass("Humanoid") then
-                p.LocalTransparencyModifier = state.xrayStr
+    if char then
+        if state.noclip then
+            for _, p in pairs(char:GetDescendants()) do 
+                if p:IsA("BasePart") then p.CanCollide = false end 
             end
         end
-    else
-        for _, p in pairs(Workspace:GetDescendants()) do
-            if p:IsA("BasePart") and p.LocalTransparencyModifier > 0 and not p:IsDescendantOf(char) then
-                p.LocalTransparencyModifier = 0
+        if state.xray then
+            for _, p in pairs(Workspace:GetDescendants()) do
+                if p:IsA("BasePart") and not p:IsDescendantOf(char) and not p.Parent:FindFirstChildOfClass("Humanoid") then
+                    p.LocalTransparencyModifier = state.xrayStr
+                end
+            end
+        else
+            for _, p in pairs(Workspace:GetDescendants()) do
+                if p:IsA("BasePart") and p.LocalTransparencyModifier > 0 and not p:IsDescendantOf(char) then
+                    p.LocalTransparencyModifier = 0
+                end
             end
         end
     end
 end)
 
--- Main Actions Loop
+-- Main Actions Loop (Farm, Aura, Fling)
 task.spawn(function()
     while task.wait(0.1) do
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
 
         if root then
+            -- Anti-Fling
+            if state.antiFling then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        for _, part in pairs(p.Character:GetDescendants()) do
+                            if part:IsA("BasePart") then part.CanCollide = false end
+                        end
+                    end
+                end
+            end
+
             -- Auto Farm
             if state.autoFarm then
+                statusLbl.Text = "Status: Farming"
                 pcall(function()
                     local containers = {"Normal", "CoinContainer", "Coins"}
                     for _, cName in pairs(containers) do
@@ -578,20 +593,27 @@ task.spawn(function()
                         if cont then
                             for _, coin in pairs(cont:GetChildren()) do
                                 if coin:IsA("BasePart") and (coin.Name == "Coin_Server" or coin.Name == "Coin") then
-                                    root.CFrame = coin.CFrame
-                                    task.wait(0.2)
+                                    if firetouchinterest then
+                                        firetouchinterest(root, coin, 0)
+                                        firetouchinterest(root, coin, 1)
+                                    else
+                                        root.CFrame = coin.CFrame
+                                    end
+                                    task.wait(0.1)
                                 end
                             end
                         end
                     end
                 end)
+            else
+                if statusLbl.Text == "Status: Farming" then statusLbl.Text = "Status: Idle" end
             end
 
             -- Auto Pickup Gun
             if state.autoPickupGun then
                 pcall(function()
                     local g = Workspace:FindFirstChild("GunDrop", true)
-                    if g and g:IsA("BasePart") then root.CFrame = g.CFrame end
+                    if g and g:IsA("BasePart") then root.CFrame = g.CFrame task.wait(0.2) end
                 end)
             end
 
@@ -610,32 +632,29 @@ task.spawn(function()
                 end)
             end
 
-            -- Auto Fling Sheriff
-            if state.autoFlingSheriff then
+            -- Auto Fling Sheriff / Touch Fling
+            if state.autoFlingSheriff or state.autoFling or state.touchFling then
                 pcall(function()
                     for _, p in pairs(Players:GetPlayers()) do
-                        if p ~= LocalPlayer and getRole(p) == "Sheriff" and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                            root.CFrame = p.Character.HumanoidRootPart.CFrame
-                            local bv = Instance.new("BodyVelocity")
-                            bv.Velocity = Vector3.new(9999, 9999, 9999)
-                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                            bv.Parent = root
-                            task.wait(0.1)
-                            bv:Destroy()
+                        local isValidTarget = false
+                        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                            if state.autoFlingSheriff and getRole(p) == "Sheriff" then isValidTarget = true end
+                            if state.autoFling then isValidTarget = true end
+                            if state.touchFling and (p.Character.HumanoidRootPart.Position - root.Position).Magnitude < 5 then isValidTarget = true end
+                            
+                            if isValidTarget then
+                                local oldPos = root.CFrame
+                                root.CFrame = p.Character.HumanoidRootPart.CFrame
+                                local bv = Instance.new("BodyAngularVelocity")
+                                bv.AngularVelocity = Vector3.new(0, 99999, 0)
+                                bv.MaxTorque = Vector3.new(0, math.huge, 0)
+                                bv.Parent = root
+                                task.wait(0.2)
+                                bv:Destroy()
+                                root.CFrame = oldPos
+                            end
                         end
                     end
-                end)
-            end
-
-            -- Touch Fling
-            if state.touchFling then
-                pcall(function()
-                    local bv = Instance.new("BodyAngularVelocity")
-                    bv.AngularVelocity = Vector3.new(0, 99999, 0)
-                    bv.MaxTorque = Vector3.new(0, math.huge, 0)
-                    bv.Parent = root
-                    task.wait(0.1)
-                    bv:Destroy()
                 end)
             end
 
@@ -659,12 +678,36 @@ task.spawn(function()
                 end)
             end
 
+            -- Auto Shoot Murderer
+            if state.autoShoot then
+                pcall(function()
+                    local gun = char:FindFirstChild("Gun") or (LocalPlayer.Backpack and LocalPlayer.Backpack:FindFirstChild("Gun"))
+                    if gun then
+                        for _, p in pairs(Players:GetPlayers()) do
+                            if p ~= LocalPlayer and getRole(p) == "Murderer" and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                                gun.Parent = char
+                                local args = { [1] = 1, [2] = p.Character.HumanoidRootPart.Position, [3] = "Shoot" }
+                                ReplicatedStorage.Remotes.Gameplay.Shoot:InvokeServer(unpack(args))
+                            end
+                        end
+                    end
+                end)
+            end
+
             -- Auto Emote
             if state.autoEmote then
                 pcall(function()
                     ReplicatedStorage.Remotes.Misc.PlayEmote:FireServer(state.selectedEmote)
                 end)
-                task.wait(2)
+                task.wait(2.5)
+            end
+            
+            -- Auto Respawn
+            if state.autoRespawn then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health <= 0 then
+                    pcall(function() ReplicatedStorage.Remotes.Gameplay.Respawn:FireServer() end)
+                end
             end
         end
     end
