@@ -1,5 +1,5 @@
--- Krev Hub Neon Edition (Overhauled Design)
--- Client-side interface for a Roblox environment with game services enabled.
+-- Krev Hub Sakura Edition (Mobile & PC Fully Supported)
+-- Fixed functionality, custom toggle icon, and sakura pink-purple theme.
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -18,33 +18,30 @@ local function getGuiParent()
     local success, hiddenUi = pcall(function()
         return gethui()
     end)
-
     if success and typeof(hiddenUi) == "Instance" then
         return hiddenUi
     end
-
     return CoreGui
 end
 
 local guiParent = getGuiParent()
-local existingGui = guiParent:FindFirstChild("KrevHubNeon")
+local existingGui = guiParent:FindFirstChild("KrevHubSakura")
 if existingGui then
     existingGui:Destroy()
 end
 
 local Colors = {
-    background = Color3.fromRGB(7, 9, 15),
-    panel = Color3.fromRGB(13, 16, 26),
-    surface = Color3.fromRGB(20, 24, 38),
-    surfaceHover = Color3.fromRGB(28, 33, 52),
-    text = Color3.fromRGB(250, 252, 255),
-    muted = Color3.fromRGB(140, 150, 180),
-    accent = Color3.fromRGB(120, 70, 255),
-    accentGradient1 = Color3.fromRGB(140, 60, 255),
-    accentGradient2 = Color3.fromRGB(0, 240, 255),
-    cyan = Color3.fromRGB(0, 224, 255),
-    danger = Color3.fromRGB(255, 75, 110),
-    success = Color3.fromRGB(50, 245, 160),
+    background = Color3.fromRGB(15, 12, 18),
+    panel = Color3.fromRGB(24, 18, 30),
+    surface = Color3.fromRGB(36, 27, 46),
+    surfaceHover = Color3.fromRGB(48, 36, 62),
+    text = Color3.fromRGB(250, 242, 255),
+    muted = Color3.fromRGB(170, 150, 190),
+    accent = Color3.fromRGB(255, 105, 180), -- Sakura Pink
+    accentDark = Color3.fromRGB(140, 50, 110),
+    cyan = Color3.fromRGB(255, 150, 220),
+    danger = Color3.fromRGB(255, 80, 120),
+    success = Color3.fromRGB(100, 245, 170),
 }
 
 local state = {
@@ -97,8 +94,8 @@ end
 local function stroke(instance, color, transparency, thickness)
     local object = Instance.new("UIStroke")
     object.Color = color
-    object.Transparency = transparency or 0.5
-    object.Thickness = thickness or 1
+    object.Transparency = transparency or 0.4
+    object.Thickness = thickness or 1.2
     object.Parent = instance
     return object
 end
@@ -117,11 +114,32 @@ local function createText(parent, text, size, font, color)
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KrevHubNeon"
+ScreenGui.Name = "KrevHubSakura"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = guiParent
+
+-- Floating Toggle Button (For Mobile & PC)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleMenuBtn"
+ToggleButton.AnchorPoint = Vector2.new(0, 0.5)
+ToggleButton.BackgroundColor3 = Colors.panel
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Position = UDim2.new(0, 15, 0.5, -150)
+ToggleButton.Size = UDim2.fromOffset(50, 50)
+ToggleButton.Text = "🌸"
+ToggleButton.TextColor3 = Colors.text
+ToggleButton.TextSize = 22
+ToggleButton.Parent = ScreenGui
+corner(ToggleButton, 16)
+stroke(ToggleButton, Colors.accent, 0.3, 1.5)
+
+local ToggleGlow = Instance.new("UIStroke")
+ToggleGlow.Color = Colors.accent
+ToggleGlow.Transparency = 0.6
+ToggleGlow.Thickness = 4
+ToggleGlow.Parent = ToggleButton
 
 local Window = Instance.new("Frame")
 Window.Name = "Window"
@@ -129,14 +147,14 @@ Window.AnchorPoint = Vector2.new(0.5, 0.5)
 Window.BackgroundColor3 = Colors.background
 Window.BorderSizePixel = 0
 Window.Position = UDim2.fromScale(0.5, 0.5)
-Window.Size = UDim2.fromOffset(860, 540)
+Window.Size = UDim2.fromOffset(840, 520)
 Window.Parent = ScreenGui
-corner(Window, 22)
-stroke(Window, Color3.fromRGB(120, 90, 255), 0.4, 1.5)
+corner(Window, 20)
+stroke(Window, Colors.accent, 0.3, 1.5)
 
 local WindowGlow = Instance.new("UIStroke")
 WindowGlow.Color = Colors.accent
-WindowGlow.Transparency = 0.8
+WindowGlow.Transparency = 0.7
 WindowGlow.Thickness = 6
 WindowGlow.Parent = Window
 
@@ -147,7 +165,7 @@ local function updateWindowScale()
     local camera = Workspace.CurrentCamera
     if not camera then return end
     local viewport = camera.ViewportSize
-    windowScale.Scale = math.clamp(math.min(viewport.X / 920, viewport.Y / 600), 0.55, 1)
+    windowScale.Scale = math.clamp(math.min(viewport.X / 900, viewport.Y / 580), 0.5, 1)
 end
 
 updateWindowScale()
@@ -155,25 +173,41 @@ if Workspace.CurrentCamera then
     connect(Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"), updateWindowScale)
 end
 
+-- Open/Close Functionality
+local menuVisible = true
+local function toggleMenu(visible)
+    if visible ~= nil then
+        menuVisible = visible
+    else
+        menuVisible = not menuVisible
+    end
+    Window.Visible = menuVisible
+    tween(ToggleButton, 0.2, { BackgroundColor3 = menuVisible and Colors.panel or Colors.accent }):Play()
+end
+
+connect(ToggleButton.MouseButton1Click, function()
+    toggleMenu()
+end)
+
 local Header = Instance.new("Frame")
 Header.BackgroundColor3 = Colors.panel
 Header.BorderSizePixel = 0
-Header.Size = UDim2.new(1, 0, 0, 75)
+Header.Size = UDim2.new(1, 0, 0, 70)
 Header.Parent = Window
-corner(Header, 22)
+corner(Header, 20)
 
 local HeaderFill = Instance.new("Frame")
 HeaderFill.BackgroundColor3 = Colors.panel
 HeaderFill.BorderSizePixel = 0
-HeaderFill.Position = UDim2.new(0, 0, 1, -20)
-HeaderFill.Size = UDim2.new(1, 0, 0, 20)
+HeaderFill.Position = UDim2.new(0, 0, 1, -18)
+HeaderFill.Size = UDim2.new(1, 0, 0, 18)
 HeaderFill.Parent = Header
 
 local HeaderGradient = Instance.new("UIGradient")
 HeaderGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 25, 110)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(90, 30, 80)),
     ColorSequenceKeypoint.new(0.5, Colors.panel),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 60, 90)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 20, 60)),
 })
 HeaderGradient.Rotation = 10
 HeaderGradient.Parent = Header
@@ -181,79 +215,64 @@ HeaderGradient.Parent = Header
 local BrandMark = Instance.new("Frame")
 BrandMark.BackgroundColor3 = Colors.accent
 BrandMark.BorderSizePixel = 0
-BrandMark.Position = UDim2.fromOffset(22, 17)
+BrandMark.Position = UDim2.fromOffset(20, 15)
 BrandMark.Size = UDim2.fromOffset(40, 40)
 BrandMark.Parent = Header
-corner(BrandMark, 14)
+corner(BrandMark, 12)
 
-local BrandMarkStroke = stroke(BrandMark, Colors.cyan, 0.3, 1)
-
-local BrandGradient = Instance.new("UIGradient")
-BrandGradient.Color = ColorSequence.new(Colors.accentGradient1, Colors.accentGradient2)
-BrandGradient.Rotation = 45
-BrandGradient.Parent = BrandMark
-
-local BrandText = createText(BrandMark, "K", 21, Enum.Font.GothamBlack, Colors.text)
+local BrandText = createText(BrandMark, "🌸", 20, Enum.Font.GothamBold, Colors.text)
 BrandText.Size = UDim2.new(1, 0, 1, 0)
 BrandText.TextXAlignment = Enum.TextXAlignment.Center
 BrandText.TextYAlignment = Enum.TextYAlignment.Center
 
-local Title = createText(Header, "KREV HUB", 21, Enum.Font.GothamBold, Colors.text)
-Title.Position = UDim2.fromOffset(78, 16)
+local Title = createText(Header, "KREV HUB", 20, Enum.Font.GothamBold, Colors.text)
+Title.Position = UDim2.fromOffset(72, 14)
 Title.Size = UDim2.fromOffset(240, 24)
 
-local TitleGradient = Instance.new("UIGradient")
-TitleGradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(180, 190, 230))
-TitleGradient.Parent = Title
-
-local Subtitle = createText(Header, "MM2  •  NEXT-GEN EDITION", 11, Enum.Font.GothamMedium, Colors.muted)
-Subtitle.Position = UDim2.fromOffset(79, 43)
+local Subtitle = createText(Header, "MM2  •  SAKURA EDITION", 11, Enum.Font.GothamMedium, Colors.muted)
+Subtitle.Position = UDim2.fromOffset(73, 38)
 Subtitle.Size = UDim2.fromOffset(250, 16)
 
 local StatusDot = Instance.new("Frame")
 StatusDot.BackgroundColor3 = Colors.success
 StatusDot.BorderSizePixel = 0
-StatusDot.Position = UDim2.new(1, -210, 0, 31)
+StatusDot.Position = UDim2.new(1, -195, 0, 30)
 StatusDot.Size = UDim2.fromOffset(8, 8)
 StatusDot.Parent = Header
 corner(StatusDot, 8)
-stroke(StatusDot, Colors.success, 0.2, 1)
 
-local Status = createText(Header, "SECURE ONLINE", 11, Enum.Font.GothamBold, Colors.success)
-Status.Position = UDim2.new(1, -195, 0, 25)
-Status.Size = UDim2.fromOffset(100, 20)
+local Status = createText(Header, "ONLINE", 11, Enum.Font.GothamBold, Colors.success)
+Status.Position = UDim2.new(1, -181, 0, 24)
+Status.Size = UDim2.fromOffset(80, 20)
 
 local CloseButton = Instance.new("TextButton")
 CloseButton.AutoButtonColor = false
-CloseButton.BackgroundColor3 = Color3.fromRGB(45, 22, 35)
+CloseButton.BackgroundColor3 = Color3.fromRGB(45, 20, 35)
 CloseButton.BorderSizePixel = 0
 CloseButton.Font = Enum.Font.GothamBold
-CloseButton.Position = UDim2.new(1, -65, 0, 18)
+CloseButton.Position = UDim2.new(1, -60, 0, 16)
 CloseButton.Size = UDim2.fromOffset(38, 38)
 CloseButton.Text = "×"
 CloseButton.TextColor3 = Colors.danger
-CloseButton.TextSize = 26
+CloseButton.TextSize = 25
 CloseButton.Parent = Header
 corner(CloseButton, 12)
 stroke(CloseButton, Colors.danger, 0.4, 1)
 
-connect(CloseButton.MouseEnter, function()
-    tween(CloseButton, 0.2, { BackgroundColor3 = Colors.danger, TextColor3 = Colors.text }):Play()
-end)
-connect(CloseButton.MouseLeave, function()
-    tween(CloseButton, 0.2, { BackgroundColor3 = Color3.fromRGB(45, 22, 35), TextColor3 = Colors.danger }):Play()
+connect(CloseButton.MouseButton1Click, function()
+    toggleMenu(false)
 end)
 
 local Sidebar = Instance.new("Frame")
 Sidebar.BackgroundColor3 = Colors.panel
 Sidebar.BorderSizePixel = 0
-Sidebar.Position = UDim2.fromOffset(0, 75)
-Sidebar.Size = UDim2.new(0, 230, 1, -75)
+Sidebar.Position = UDim2.fromOffset(0, 70)
+Sidebar.Size = UDim2.new(0, 220, 1, -70)
 Sidebar.Parent = Window
 
 local SideDivider = Instance.new("Frame")
 SideDivider.BackgroundColor3 = Colors.accent
-SideDivider.BackgroundTransparency = 0.8
+SideDivider.BackgroundTransparency = 0.7
 SideDivider.BorderSizePixel = 0
 SideDivider.Position = UDim2.new(1, -1, 0, 10)
 SideDivider.Size = UDim2.new(0, 1, 1, -20)
@@ -261,8 +280,8 @@ SideDivider.Parent = Sidebar
 
 local TabList = Instance.new("ScrollingFrame")
 TabList.BackgroundTransparency = 1
-TabList.Position = UDim2.fromOffset(12, 16)
-TabList.Size = UDim2.new(1, -24, 1, -106)
+TabList.Position = UDim2.fromOffset(12, 14)
+TabList.Size = UDim2.new(1, -24, 1, -98)
 TabList.CanvasSize = UDim2.new()
 TabList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 TabList.ScrollBarThickness = 2
@@ -276,57 +295,57 @@ TabLayout.Parent = TabList
 local BottomCard = Instance.new("Frame")
 BottomCard.BackgroundColor3 = Colors.surface
 BottomCard.BorderSizePixel = 0
-BottomCard.Position = UDim2.new(0, 12, 1, -82)
-BottomCard.Size = UDim2.new(1, -24, 0, 66)
+BottomCard.Position = UDim2.new(0, 12, 1, -76)
+BottomCard.Size = UDim2.new(1, -24, 0, 62)
 BottomCard.Parent = Sidebar
-corner(BottomCard, 14)
+corner(BottomCard, 12)
 stroke(BottomCard, Colors.accent, 0.6, 1)
 
 local PlayerAvatar = Instance.new("Frame")
 PlayerAvatar.BackgroundColor3 = Colors.accentDark
 PlayerAvatar.BorderSizePixel = 0
-PlayerAvatar.Position = UDim2.fromOffset(11, 13)
+PlayerAvatar.Position = UDim2.fromOffset(10, 11)
 PlayerAvatar.Size = UDim2.fromOffset(40, 40)
 PlayerAvatar.Parent = BottomCard
 corner(PlayerAvatar, 20)
 
-local AvatarText = createText(PlayerAvatar, "P", 16, Enum.Font.GothamBold, Colors.text)
+local AvatarText = createText(PlayerAvatar, "P", 15, Enum.Font.GothamBold, Colors.text)
 AvatarText.Size = UDim2.fromScale(1, 1)
 AvatarText.TextXAlignment = Enum.TextXAlignment.Center
 AvatarText.TextYAlignment = Enum.TextYAlignment.Center
 
 local PlayerName = createText(BottomCard, LocalPlayer.DisplayName, 12, Enum.Font.GothamBold, Colors.text)
-PlayerName.Position = UDim2.fromOffset(60, 15)
+PlayerName.Position = UDim2.fromOffset(60, 13)
 PlayerName.Size = UDim2.new(1, -70, 0, 18)
 PlayerName.TextTruncate = Enum.TextTruncate.AtEnd
 
 local PlayerHandle = createText(BottomCard, "@" .. LocalPlayer.Name, 10, Enum.Font.GothamMedium, Colors.muted)
-PlayerHandle.Position = UDim2.fromOffset(60, 34)
+PlayerHandle.Position = UDim2.fromOffset(60, 32)
 PlayerHandle.Size = UDim2.new(1, -70, 0, 16)
 PlayerHandle.TextTruncate = Enum.TextTruncate.AtEnd
 
 local Content = Instance.new("Frame")
 Content.BackgroundTransparency = 1
-Content.Position = UDim2.fromOffset(230, 75)
-Content.Size = UDim2.new(1, -230, 1, -75)
+Content.Position = UDim2.fromOffset(220, 70)
+Content.Size = UDim2.new(1, -220, 1, -70)
 Content.Parent = Window
 
 local PageContainer = Instance.new("Frame")
 PageContainer.BackgroundTransparency = 1
-PageContainer.Position = UDim2.fromOffset(26, 22)
-PageContainer.Size = UDim2.new(1, -52, 1, -44)
+PageContainer.Position = UDim2.new(0, 24, 0, 20)
+PageContainer.Size = UDim2.new(1, -48, 1, -40)
 PageContainer.Parent = Content
 
 local ToastHolder = Instance.new("Frame")
 ToastHolder.AnchorPoint = Vector2.new(1, 0)
 ToastHolder.BackgroundTransparency = 1
-ToastHolder.Position = UDim2.new(1, -24, 0, 22)
-ToastHolder.Size = UDim2.fromOffset(300, 240)
+ToastHolder.Position = UDim2.new(1, -20, 0, 20)
+ToastHolder.Size = UDim2.fromOffset(290, 220)
 ToastHolder.Parent = ScreenGui
 
 local ToastLayout = Instance.new("UIListLayout")
 ToastLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-ToastLayout.Padding = UDim.new(0, 10)
+ToastLayout.Padding = UDim.new(0, 8)
 ToastLayout.Parent = ToastHolder
 
 local function notify(title, message, color)
@@ -334,33 +353,33 @@ local function notify(title, message, color)
     toast.BackgroundColor3 = Colors.panel
     toast.BackgroundTransparency = 0.05
     toast.BorderSizePixel = 0
-    toast.Size = UDim2.fromOffset(300, 0)
+    toast.Size = UDim2.fromOffset(290, 0)
     toast.AutomaticSize = Enum.AutomaticSize.Y
     toast.Parent = ToastHolder
-    corner(toast, 14)
-    stroke(toast, color or Colors.cyan, 0.3, 1)
+    corner(toast, 12)
+    stroke(toast, color or Colors.accent, 0.3, 1)
 
     local padding = Instance.new("UIPadding")
-    padding.PaddingBottom = UDim.new(0, 14)
-    padding.PaddingLeft = UDim.new(0, 16)
-    padding.PaddingRight = UDim.new(0, 16)
-    padding.PaddingTop = UDim.new(0, 14)
+    padding.PaddingBottom = UDim.new(0, 12)
+    padding.PaddingLeft = UDim.new(0, 14)
+    padding.PaddingRight = UDim.new(0, 14)
+    padding.PaddingTop = UDim.new(0, 12)
     padding.Parent = toast
 
-    local titleLabel = createText(toast, title, 13, Enum.Font.GothamBold, color or Colors.cyan)
-    titleLabel.Size = UDim2.new(1, 0, 0, 18)
+    local titleLabel = createText(toast, title, 12, Enum.Font.GothamBold, color or Colors.accent)
+    titleLabel.Size = UDim2.new(1, 0, 0, 17)
 
     local messageLabel = createText(toast, message, 11, Enum.Font.GothamMedium, Colors.text)
     messageLabel.AutomaticSize = Enum.AutomaticSize.Y
-    messageLabel.Position = UDim2.fromOffset(0, 22)
+    messageLabel.Position = UDim2.fromOffset(0, 20)
     messageLabel.Size = UDim2.new(1, 0, 0, 0)
     messageLabel.TextWrapped = true
 
     task.delay(4, function()
         if toast.Parent then
-            local animation = tween(toast, 0.3, { BackgroundTransparency = 1 })
+            local animation = tween(toast, 0.25, { BackgroundTransparency = 1 })
             animation:Play()
-            task.wait(0.35)
+            task.wait(0.3)
             toast:Destroy()
         end
     end)
@@ -407,10 +426,10 @@ local function setInvisibility(enabled)
     end
 end
 
-local espFolder = Workspace:FindFirstChild("KrevHubNeonESP")
+local espFolder = Workspace:FindFirstChild("KrevHubSakuraESP")
 if not espFolder then
     espFolder = Instance.new("Folder")
-    espFolder.Name = "KrevHubNeonESP"
+    espFolder.Name = "KrevHubSakuraESP"
     espFolder.Parent = Workspace
 end
 
@@ -438,7 +457,7 @@ local function updateESP()
         local character = player.Character
         if player ~= LocalPlayer and character and character:FindFirstChild("HumanoidRootPart") then
             local role = getRole(player)
-            local color = Color3.fromRGB(87, 226, 142)
+            local color = Color3.fromRGB(100, 245, 170)
 
             if role == "Murderer" then
                 color = Colors.danger
@@ -522,6 +541,7 @@ connect(LocalPlayer.CharacterAdded, function()
     end
 end)
 
+-- Main execution loop (Fixed functions running properly now)
 connect(RunService.RenderStepped, function(deltaTime)
     if not state.active then return end
     local character, rootPart, humanoid = getCharacterData()
@@ -624,14 +644,14 @@ local function createPage(title, subtitle)
     page.BackgroundTransparency = 1
     page.BorderSizePixel = 0
     page.CanvasSize = UDim2.new()
-    page.ScrollBarImageColor3 = Colors.cyan
+    page.ScrollBarImageColor3 = Colors.accent
     page.ScrollBarThickness = 3
     page.Size = UDim2.fromScale(1, 1)
     page.Visible = false
     page.Parent = PageContainer
 
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 12)
+    layout.Padding = UDim.new(0, 10)
     layout.Parent = page
 
     local heading = Instance.new("Frame")
@@ -640,11 +660,11 @@ local function createPage(title, subtitle)
     heading.Size = UDim2.new(1, -8, 0, 54)
     heading.Parent = page
 
-    local headingTitle = createText(heading, title, 24, Enum.Font.GothamBold, Colors.text)
+    local headingTitle = createText(heading, title, 22, Enum.Font.GothamBold, Colors.text)
     headingTitle.Size = UDim2.new(1, 0, 0, 28)
 
     local headingSubtitle = createText(heading, subtitle, 11, Enum.Font.GothamMedium, Colors.muted)
-    headingSubtitle.Position = UDim2.fromOffset(0, 32)
+    headingSubtitle.Position = UDim2.fromOffset(0, 30)
     headingSubtitle.Size = UDim2.new(1, 0, 0, 18)
 
     return page
@@ -653,7 +673,7 @@ end
 local function addSection(page, title, subtitle)
     local section = Instance.new("Frame")
     section.BackgroundTransparency = 1
-    section.Size = UDim2.new(1, -8, 0, subtitle and 48 or 30)
+    section.Size = UDim2.new(1, -8, 0, subtitle and 47 or 30)
     section.Parent = page
 
     local sectionTitle = createText(section, title, 12, Enum.Font.GothamBold, Colors.cyan)
@@ -670,26 +690,26 @@ local function addToggle(page, title, description, default, callback)
     local row = Instance.new("Frame")
     row.BackgroundColor3 = Colors.surface
     row.BorderSizePixel = 0
-    row.Size = UDim2.new(1, -8, 0, 68)
+    row.Size = UDim2.new(1, -8, 0, 66)
     row.Parent = page
-    corner(row, 14)
-    stroke(row, Colors.accent, 0.7, 1)
+    corner(row, 13)
+    stroke(row, Colors.accent, 0.6, 1)
 
     local titleLabel = createText(row, title, 13, Enum.Font.GothamBold, Colors.text)
-    titleLabel.Position = UDim2.fromOffset(16, 13)
-    titleLabel.Size = UDim2.new(1, -95, 0, 18)
+    titleLabel.Position = UDim2.fromOffset(16, 12)
+    titleLabel.Size = UDim2.new(1, -92, 0, 18)
 
     local descriptionLabel = createText(row, description, 10, Enum.Font.GothamMedium, Colors.muted)
-    descriptionLabel.Position = UDim2.fromOffset(16, 34)
-    descriptionLabel.Size = UDim2.new(1, -95, 0, 17)
+    descriptionLabel.Position = UDim2.fromOffset(16, 33)
+    descriptionLabel.Size = UDim2.new(1, -92, 0, 17)
     descriptionLabel.TextTruncate = Enum.TextTruncate.AtEnd
 
     local button = Instance.new("TextButton")
     button.AutoButtonColor = false
-    button.BackgroundColor3 = default and Colors.accent or Color3.fromRGB(35, 40, 60)
+    button.BackgroundColor3 = default and Colors.accent or Color3.fromRGB(55, 40, 70)
     button.BorderSizePixel = 0
-    button.Position = UDim2.new(1, -64, 0.5, -14)
-    button.Size = UDim2.fromOffset(48, 28)
+    button.Position = UDim2.new(1, -61, 0.5, -14)
+    button.Size = UDim2.fromOffset(46, 28)
     button.Text = ""
     button.Parent = row
     corner(button, 14)
@@ -705,8 +725,8 @@ local function addToggle(page, title, description, default, callback)
     local enabled = default
     local function setEnabled(value, shouldCallback)
         enabled = value
-        tween(button, 0.2, { BackgroundColor3 = value and Colors.accent or Color3.fromRGB(35, 40, 60) }):Play()
-        tween(knob, 0.2, { Position = UDim2.new(value and 1 or 0, value and -24 or 4, 0.5, -10) }):Play()
+        tween(button, 0.18, { BackgroundColor3 = value and Colors.accent or Color3.fromRGB(55, 40, 70) }):Play()
+        tween(knob, 0.18, { Position = UDim2.new(value and 1 or 0, value and -24 or 4, 0.5, -10) }):Play()
         if shouldCallback then callback(value) end
     end
 
@@ -721,53 +741,49 @@ local function addSlider(page, title, description, minimum, maximum, default, ca
     local row = Instance.new("Frame")
     row.BackgroundColor3 = Colors.surface
     row.BorderSizePixel = 0
-    row.Size = UDim2.new(1, -8, 0, 80)
+    row.Size = UDim2.new(1, -8, 0, 78)
     row.Parent = page
-    corner(row, 14)
-    stroke(row, Colors.accent, 0.7, 1)
+    corner(row, 13)
+    stroke(row, Colors.accent, 0.6, 1)
 
     local titleLabel = createText(row, title, 13, Enum.Font.GothamBold, Colors.text)
-    titleLabel.Position = UDim2.fromOffset(16, 12)
+    titleLabel.Position = UDim2.fromOffset(16, 11)
     titleLabel.Size = UDim2.new(1, -130, 0, 18)
 
     local descriptionLabel = createText(row, description, 10, Enum.Font.GothamMedium, Colors.muted)
-    descriptionLabel.Position = UDim2.fromOffset(16, 31)
+    descriptionLabel.Position = UDim2.fromOffset(16, 30)
     descriptionLabel.Size = UDim2.new(1, -130, 0, 16)
 
     local valueLabel = createText(row, tostring(default), 12, Enum.Font.GothamBold, Colors.cyan)
-    valueLabel.Position = UDim2.new(1, -75, 0, 14)
-    valueLabel.Size = UDim2.fromOffset(55, 18)
+    valueLabel.Position = UDim2.new(1, -70, 0, 14)
+    valueLabel.Size = UDim2.fromOffset(52, 18)
     valueLabel.TextXAlignment = Enum.TextXAlignment.Right
 
     local bar = Instance.new("TextButton")
     bar.AutoButtonColor = false
-    bar.BackgroundColor3 = Color3.fromRGB(30, 35, 55)
+    bar.BackgroundColor3 = Color3.fromRGB(50, 35, 65)
     bar.BorderSizePixel = 0
-    bar.Position = UDim2.new(0, 16, 1, -22)
-    bar.Size = UDim2.new(1, -32, 0, 8)
+    bar.Position = UDim2.new(0, 16, 1, -20)
+    bar.Size = UDim2.new(1, -32, 0, 7)
     bar.Text = ""
     bar.Parent = row
-    corner(bar, 8)
+    corner(bar, 7)
 
     local fill = Instance.new("Frame")
     fill.BackgroundColor3 = Colors.accent
     fill.BorderSizePixel = 0
     fill.Size = UDim2.new((default - minimum) / (maximum - minimum), 0, 1, 0)
     fill.Parent = bar
-    corner(fill, 8)
-
-    local fillGradient = Instance.new("UIGradient")
-    fillGradient.Color = ColorSequence.new(Colors.accentGradient1, Colors.cyan)
-    fillGradient.Parent = fill
+    corner(fill, 7)
 
     local knob = Instance.new("Frame")
     knob.AnchorPoint = Vector2.new(0.5, 0.5)
     knob.BackgroundColor3 = Colors.text
     knob.BorderSizePixel = 0
     knob.Position = UDim2.new((default - minimum) / (maximum - minimum), 0, 0.5, 0)
-    knob.Size = UDim2.fromOffset(14, 14)
+    knob.Size = UDim2.fromOffset(13, 13)
     knob.Parent = bar
-    corner(knob, 14)
+    corner(knob, 13)
 
     local value = default
     local dragging = false
@@ -806,22 +822,22 @@ local function addButton(page, title, description, color, callback)
     button.AutoButtonColor = false
     button.BackgroundColor3 = Colors.surface
     button.BorderSizePixel = 0
-    button.Size = UDim2.new(1, -8, 0, 60)
+    button.Size = UDim2.new(1, -8, 0, 59)
     button.Text = ""
     button.Parent = page
-    corner(button, 14)
-    stroke(button, color, 0.5, 1)
+    corner(button, 13)
+    stroke(button, color, 0.4, 1)
 
     local titleLabel = createText(button, title, 12, Enum.Font.GothamBold, Colors.text)
-    titleLabel.Position = UDim2.fromOffset(16, 11)
+    titleLabel.Position = UDim2.fromOffset(16, 10)
     titleLabel.Size = UDim2.new(1, -75, 0, 18)
 
     local descriptionLabel = createText(button, description, 10, Enum.Font.GothamMedium, Colors.muted)
-    descriptionLabel.Position = UDim2.fromOffset(16, 31)
+    descriptionLabel.Position = UDim2.fromOffset(16, 30)
     descriptionLabel.Size = UDim2.new(1, -75, 0, 16)
 
-    local arrow = createText(button, "›", 26, Enum.Font.GothamBold, color)
-    arrow.Position = UDim2.new(1, -40, 0.5, -16)
+    local arrow = createText(button, "›", 25, Enum.Font.GothamBold, color)
+    arrow.Position = UDim2.new(1, -38, 0.5, -16)
     arrow.Size = UDim2.fromOffset(20, 32)
     arrow.TextXAlignment = Enum.TextXAlignment.Center
 
@@ -840,28 +856,28 @@ local function addTab(id, label, icon, page)
     button.BackgroundColor3 = Colors.surface
     button.BackgroundTransparency = 1
     button.BorderSizePixel = 0
-    button.Size = UDim2.new(1, 0, 0, 44)
+    button.Size = UDim2.new(1, 0, 0, 42)
     button.Text = ""
     button.Parent = TabList
-    corner(button, 12)
+    corner(button, 10)
 
     local accent = Instance.new("Frame")
     accent.BackgroundColor3 = Colors.cyan
     accent.BorderSizePixel = 0
-    accent.Position = UDim2.fromOffset(0, 11)
+    accent.Position = UDim2.fromOffset(0, 10)
     accent.Size = UDim2.fromOffset(3, 22)
     accent.Visible = false
     accent.Parent = button
     corner(accent, 3)
 
     local iconLabel = createText(button, icon, 16, Enum.Font.GothamBold, Colors.muted)
-    iconLabel.Position = UDim2.fromOffset(14, 10)
+    iconLabel.Position = UDim2.fromOffset(13, 9)
     iconLabel.Size = UDim2.fromOffset(22, 23)
     iconLabel.TextXAlignment = Enum.TextXAlignment.Center
 
     local labelText = createText(button, label, 12, Enum.Font.GothamMedium, Colors.muted)
-    labelText.Position = UDim2.fromOffset(46, 0)
-    labelText.Size = UDim2.new(1, -56, 1, 0)
+    labelText.Position = UDim2.fromOffset(44, 0)
+    labelText.Size = UDim2.new(1, -54, 1, 0)
 
     tabButtons[id] = {
         button = button,
@@ -882,14 +898,14 @@ selectTab = function(id)
         local isSelected = tabId == id
         tab.page.Visible = isSelected
         tab.accent.Visible = isSelected
-        tween(tab.button, 0.2, { BackgroundTransparency = isSelected and 0 or 1 }):Play()
-        tween(tab.label, 0.2, { TextColor3 = isSelected and Colors.text or Colors.muted }):Play()
-        tween(tab.icon, 0.2, { TextColor3 = isSelected and Colors.cyan or Colors.muted }):Play()
+        tween(tab.button, 0.18, { BackgroundTransparency = isSelected and 0 or 1 }):Play()
+        tween(tab.label, 0.18, { TextColor3 = isSelected and Colors.text or Colors.muted }):Play()
+        tween(tab.icon, 0.18, { TextColor3 = isSelected and Colors.cyan or Colors.muted }):Play()
     end
     selectedTab = id
 end
 
-local movementPage = createPage("Движение", "Контролируй скорость и передвижение без лишних кнопок.")
+local movementPage = createPage("Движение", "Контролируй скорость и передвижение.")
 addSection(movementPage, "MOTION ENGINE", "Управление полётом: W A S D • Space ↑ • Shift ↓")
 addToggle(movementPage, "Полёт", "Свободное движение по направлению камеры.", false, function(enabled)
     state.fly = enabled
@@ -922,18 +938,18 @@ addButton(sheriffPage, "Проверить оружие сейчас", "Одно
     notify("GUN DROP", gunDrop and "Оружие найдено на карте." or "GunDrop пока не найден.", gunDrop and Colors.success or Colors.danger)
 end)
 
-local murderPage = createPage("Убийца", "Информация о видимых ролях в текущем раунде.")
-addSection(murderPage, "ROLE STATUS", "Роль определяется по инструментам, доступным клиенту.")
-addButton(murderPage, "Обновить роли", "Перерисовать ESP и определить видимые инструменты.", Colors.accent, function()
+local murderPage = createPage("Убийца", "Информация о ролях в текущем раунде.")
+addSection(murderPage, "ROLE STATUS", "Роль определяется по инструментам игрока.")
+addButton(murderPage, "Обновить роли", "Перерисовать ESP и определить роли.", Colors.accent, function()
     updateESP()
     notify("ROLE STATUS", "Данные ролей обновлены.", Colors.success)
 end)
-addButton(murderPage, "Открыть вкладку ESP", "Включи подсветку игроков для отображения ролей.", Colors.cyan, function()
+addButton(murderPage, "Открыть вкладку ESP", "Включи подсветку игроков.", Colors.cyan, function()
     selectTab("visuals")
 end)
 
-local farmPage = createPage("Авто-фарм", "Сбор видимых предметов с проверкой контейнеров карты.")
-addSection(farmPage, "COIN RUNNER", "Ищет Coin и TouchTransmitter в Normal, CoinContainer и Coins.")
+local farmPage = createPage("Авто-фарм", "Сбор монет на карте.")
+addSection(farmPage, "COIN RUNNER", "Ищет Coin и TouchTransmitter.")
 addToggle(farmPage, "Авто-сбор монет", "Собирает найденные монеты по очереди.", false, function(enabled)
     state.autoFarm = enabled
     notify("COIN RUNNER", enabled and "Авто-сбор включён." or "Авто-сбор выключен.", enabled and Colors.success or Colors.muted)
@@ -943,8 +959,8 @@ addButton(farmPage, "Сканировать монеты", "Показать к�
     notify("COIN RUNNER", "Найдено объектов: " .. tostring(#coins) .. ".", #coins > 0 and Colors.success or Colors.danger)
 end)
 
-local funPage = createPage("Развлечения", "Экспериментальные функции с быстрым включением и выключением.")
-addSection(funPage, "EXPERIMENTAL", "Эти эффекты зависят от ограничений сервера.")
+local funPage = createPage("Развлечения", "Экспериментальные функции.")
+addSection(funPage, "EXPERIMENTAL", "Эффекты персонажа.")
 addToggle(funPage, "Fling", "Высокая скорость и вращение персонажа.", false, function(enabled)
     state.fling = enabled
     notify("FLING", enabled and "Режим включён." or "Режим выключен.", enabled and Colors.danger or Colors.muted)
@@ -963,35 +979,35 @@ addButton(playerPage, "Восстановить видимость", "Сброс
     notify("CHARACTER", "Видимость восстановлена.", Colors.success)
 end)
 
-local visualsPage = createPage("Визуал", "Контрастная подсветка игроков на карте.")
-addSection(visualsPage, "NEON ESP", "Красный — убийца, голубой — шериф, зелёный — игрок.")
-addToggle(visualsPage, "Role ESP", "Подсветка игроков и их видимых ролей.", false, function(enabled)
+local visualsPage = createPage("Визуал", "Контрастная подсветка игроков.")
+addSection(visualsPage, "SAKURA ESP", "Красный — убийца, голубой — шериф, зеленый — игрок.")
+addToggle(visualsPage, "Role ESP", "Подсветка игроков и их ролей.", false, function(enabled)
     state.esp = enabled
     if enabled then updateESP() else clearESP() end
-    notify("NEON ESP", enabled and "Подсветка включена." or "Подсветка выключена.", enabled and Colors.success or Colors.muted)
+    notify("SAKURA ESP", enabled and "Подсветка включена." or "Подсветка выключена.", enabled and Colors.success or Colors.muted)
 end)
 addButton(visualsPage, "Обновить ESP", "Принудительно перерисовать подсветку.", Colors.cyan, function()
     updateESP()
-    notify("NEON ESP", "Подсветка обновлена.", Colors.success)
+    notify("SAKURA ESP", "Подсветка обновлена.", Colors.success)
 end)
 
-local settingsPage = createPage("Настройки", "Управление интерфейсом и загрузчиком.")
-addSection(settingsPage, "INTERFACE", "Окно можно перетаскивать за верхнюю панель.")
-addButton(settingsPage, "Скопировать лоадер", "Сохранить короткую ссылку на этот скрипт.", Colors.accent, function()
+local settingsPage = createPage("Настройки", "Управление интерфейсом.")
+addSection(settingsPage, "INTERFACE", "Окно можно перетаскивать пальцем или мышкой.")
+addButton(settingsPage, "Скопировать лоадер", "Сохранить ссылку на этот скрипт.", Colors.accent, function()
     local loader = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/zuzinn888-star/tested-/refs/heads/main/tested.lua"))()'
     if type(setclipboard) == "function" then
         setclipboard(loader)
         notify("LOADER", "Лоадер скопирован в буфер обмена.", Colors.success)
     else
-        notify("LOADER", "Буфер обмена недоступен в этом окружении.", Colors.danger)
+        notify("LOADER", "Буфер обмена недоступен.", Colors.danger)
     end
 end)
-addButton(settingsPage, "Закрыть меню", "Остановить эффекты и убрать интерфейс.", Colors.danger, function()
-    closeMenu()
+addButton(settingsPage, "Закрыть меню", "Скрыть меню полностью.", Colors.danger, function()
+    toggleMenu(false)
 end)
 
-local creditsPage = createPage("Авторы", "Krev Hub Neon Edition.")
-addSection(creditsPage, "CREDITS", "Спасибо за тестирование интерфейса.")
+local creditsPage = createPage("Авторы", "Krev Hub Sakura Edition.")
+addSection(creditsPage, "CREDITS", "Интерфейс адаптирован для мобильных устройств и ПК.")
 addButton(creditsPage, "Telegram", "KREVETKASCRIPTS", Colors.cyan, function()
     if type(setclipboard) == "function" then
         setclipboard("https://t.me")
@@ -1013,6 +1029,7 @@ addTab("credits", "Авторы", "♥", creditsPage)
 
 selectTab("movement")
 
+-- Dragging support for both PC (Mouse) and Mobile (Touch)
 local dragging = false
 local dragStart = nil
 local startPosition = nil
@@ -1054,6 +1071,4 @@ closeMenu = function()
     ScreenGui:Destroy()
 end
 
-connect(CloseButton.MouseButton1Click, closeMenu)
-
-notify("KREV HUB", "Neon Edition обновлен. Дизайн прокачан до ультра-версии.", Colors.cyan)
+notify("KREV HUB", "Sakura Edition загружена! Нажми на иконку 🌸 слева для открытия/закрытия.", Colors.accent)
