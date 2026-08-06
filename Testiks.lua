@@ -1,5 +1,5 @@
--- Krev Hub MM2 - Ultra Modern Extended Edition (Mobile & PC Supported)
--- Complete UI layout with full functionality set, custom icon toggle, dark/pink design theme.
+-- Krev Hub MM2 - Ultra Modern Extended Edition V2
+-- Added draggable toggle, centered icon, resizable window (via slider), working auto-gun, and dropdowns.
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -39,6 +39,7 @@ local Theme = {
 
 local state = {
     active = true,
+    menuScale = 1,
     roleEsp = false,
     xray = false,
     xrayTransparency = 0.5,
@@ -50,14 +51,16 @@ local state = {
     wallbang = false,
     autoShoot = false,
     autoKill = false,
+    aimbotType = "Classic",
+    flickSpeed = 6,
     killAura = false,
     killAll = false,
     killOnlySheriff = false,
+    killPlayerTarget = "None",
     knifeThrow = false,
     knifeThrowAimbot = false,
     prediction = false,
     predictionLead = 100,
-    selectedPlayer = "none",
     autoFarm = false,
     autoRespawn = false,
     antiFling = false,
@@ -109,6 +112,43 @@ local function createText(parent, text, size, font, color)
     return label
 end
 
+local function makeDraggable(gui, handle)
+    handle = handle or gui
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    connect(handle.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    connect(handle.InputChanged, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    connect(UserInputService.InputChanged, function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "KrevHubMM2Extended"
 ScreenGui.IgnoreGuiInset = true
@@ -118,21 +158,23 @@ ScreenGui.Parent = guiParent
 
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "KrevToggle"
-ToggleButton.AnchorPoint = Vector2.new(0, 0.5)
+ToggleButton.AnchorPoint = Vector2.new(0.5, 0.5)
 ToggleButton.BackgroundColor3 = Theme.panel
 ToggleButton.BorderSizePixel = 0
-ToggleButton.Position = UDim2.new(0, 15, 0.5, -160)
-ToggleButton.Size = UDim2.fromOffset(45, 45)
+ToggleButton.Position = UDim2.new(0.5, 0, 0.15, 0)
+ToggleButton.Size = UDim2.fromOffset(50, 50)
 ToggleButton.Text = "K"
 ToggleButton.Font = Enum.Font.GothamBlack
 ToggleButton.TextColor3 = Theme.accent
 ToggleButton.TextSize = 24
 ToggleButton.Parent = ScreenGui
-corner(ToggleButton, 10)
+corner(ToggleButton, 25)
+makeDraggable(ToggleButton)
+
 local tStroke = Instance.new("UIStroke")
 tStroke.Color = Theme.accent
-tStroke.Transparency = 0.5
-tStroke.Thickness = 1.5
+tStroke.Transparency = 0.3
+tStroke.Thickness = 2
 tStroke.Parent = ToggleButton
 
 local Window = Instance.new("Frame")
@@ -147,26 +189,15 @@ corner(Window, 12)
 
 local wStroke = Instance.new("UIStroke")
 wStroke.Color = Theme.accent
-wStroke.Transparency = 0.7
+wStroke.Transparency = 0.5
 wStroke.Thickness = 1
 wStroke.Parent = Window
 
 local windowScale = Instance.new("UIScale")
 windowScale.Parent = Window
 
-local function updateScale()
-    local camera = Workspace.CurrentCamera
-    if not camera then return end
-    local viewport = camera.ViewportSize
-    windowScale.Scale = math.clamp(math.min(viewport.X / 870, viewport.Y / 540), 0.5, 1)
-end
-
-updateScale()
-if Workspace.CurrentCamera then
-    connect(Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"), updateScale)
-end
-
-local menuVisible = true
+local menuVisible = false
+Window.Visible = menuVisible
 local function toggleMenu(visible)
     if visible ~= nil then menuVisible = visible else menuVisible = not menuVisible end
     Window.Visible = menuVisible
@@ -179,6 +210,7 @@ Header.BorderSizePixel = 0
 Header.Size = UDim2.new(1, 0, 0, 50)
 Header.Parent = Window
 corner(Header, 12)
+makeDraggable(Window, Header)
 
 local HeaderFill = Instance.new("Frame")
 HeaderFill.BackgroundColor3 = Theme.panel
@@ -243,6 +275,7 @@ ContentArea.Position = UDim2.fromOffset(180, 50)
 ContentArea.Size = UDim2.new(1, -180, 1, -50)
 ContentArea.Parent = Window
 
+-- Game Logic Core
 local function getRole(player)
     local char = player.Character
     if not char then return "Innocent" end
@@ -252,7 +285,32 @@ local function getRole(player)
     return "Innocent"
 end
 
+local function getCharacterData()
+    local char = LocalPlayer.Character
+    if not char then return nil, nil end
+    return char, char:FindFirstChild("HumanoidRootPart")
+end
+
+-- Teleport to specific location/part safely
+local function teleportTo(cframe)
+    local char, root = getCharacterData()
+    if root then
+        root.CFrame = cframe
+    end
+end
+
+local function findPlayerByName(name)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Name == name or p.DisplayName == name then return p end
+    end
+    return nil
+end
+
+-- Main Loop
 connect(RunService.RenderStepped, function()
+    if not state.active then return end
+    
+    -- Visuals
     espFolder:ClearAllChildren()
     if state.roleEsp or state.gunEsp then
         for _, player in ipairs(Players:GetPlayers()) do
@@ -310,6 +368,72 @@ connect(RunService.RenderStepped, function()
     end
 end)
 
+-- Action Loop (Gun Pickup, Auto Farm, Aimbot logic)
+task.spawn(function()
+    while task.wait(0.1) do
+        if not state.active then break end
+
+        -- Auto Pickup Gun (Working logic)
+        if state.autoPickupGun then
+            local gunDrop = Workspace:FindFirstChild("GunDrop")
+            if not gunDrop then
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj.Name == "GunDrop" and obj:IsA("BasePart") then gunDrop = obj break end
+                end
+            end
+            if gunDrop then
+                local char, root = getCharacterData()
+                if root then
+                    -- Save current pos to snap back (optional, but standard for silent pickup)
+                    local oldPos = root.CFrame
+                    root.CFrame = gunDrop.CFrame
+                    task.wait(0.2)
+                end
+            end
+        end
+        
+        -- Auto Farm Coins
+        if state.autoFarm then
+            local char, root = getCharacterData()
+            if root then
+                local containers = {"Normal", "CoinContainer", "Coins"}
+                for _, cName in pairs(containers) do
+                    local cont = Workspace:FindFirstChild(cName)
+                    if cont then
+                        for _, coin in pairs(cont:GetDescendants()) do
+                            if coin:IsA("BasePart") and coin.Name == "Coin_Server" then
+                                root.CFrame = coin.CFrame
+                                task.wait(0.2)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Kill Aura
+        if state.killAura then
+            local char, root = getCharacterData()
+            local knife = char and char:FindFirstChild("Knife") or (LocalPlayer.Backpack and LocalPlayer.Backpack:FindFirstChild("Knife"))
+            if root and knife then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local role = getRole(p)
+                        if state.killAll or (state.killOnlySheriff and role == "Sheriff") then
+                            local dist = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
+                            if dist < 20 then
+                                knife.Parent = char
+                                knife:Activate()
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- UI Construction
 local pages = {}
 local tabButtons = {}
 local activeTab = nil
@@ -493,11 +617,125 @@ local function addSlider(page, title, min, max, default, callback)
     end)
 end
 
+local function addDropdown(page, title, options, default, callback)
+    local row = Instance.new("Frame")
+    row.BackgroundColor3 = Theme.surface
+    row.BorderSizePixel = 0
+    row.Size = UDim2.new(1, 0, 0, 70)
+    row.Parent = page
+    corner(row, 8)
+
+    local tLbl = createText(row, title, 13, Enum.Font.GothamMedium, Theme.text)
+    tLbl.Position = UDim2.fromOffset(15, 10)
+    tLbl.Size = UDim2.new(1, -30, 0, 15)
+
+    local dropBtn = Instance.new("TextButton")
+    dropBtn.AutoButtonColor = false
+    dropBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    dropBtn.BorderSizePixel = 0
+    dropBtn.Position = UDim2.new(0, 15, 0, 32)
+    dropBtn.Size = UDim2.new(1, -30, 0, 26)
+    dropBtn.Text = " " .. tostring(default)
+    dropBtn.TextColor3 = Theme.accent
+    dropBtn.Font = Enum.Font.GothamBold
+    dropBtn.TextSize = 12
+    dropBtn.TextXAlignment = Enum.TextXAlignment.Left
+    dropBtn.Parent = row
+    corner(dropBtn, 6)
+
+    local icon = createText(dropBtn, "▼", 10, Enum.Font.Gotham, Theme.muted)
+    icon.Position = UDim2.new(1, -20, 0, 0)
+    icon.Size = UDim2.new(0, 20, 1, 0)
+    icon.TextXAlignment = Enum.TextXAlignment.Center
+    icon.TextYAlignment = Enum.TextYAlignment.Center
+
+    local isOpen = false
+    local listFrame = Instance.new("ScrollingFrame")
+    listFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    listFrame.BorderSizePixel = 0
+    listFrame.Position = UDim2.new(0, 15, 0, 62)
+    listFrame.Size = UDim2.new(1, -30, 0, 0)
+    listFrame.CanvasSize = UDim2.new()
+    listFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    listFrame.ScrollBarThickness = 2
+    listFrame.ZIndex = 10
+    listFrame.Visible = false
+    listFrame.Parent = row
+    corner(listFrame, 6)
+    
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Parent = listFrame
+
+    local function refreshOptions(newOptions)
+        for _, v in pairs(listFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+        for _, opt in pairs(newOptions) do
+            local btn = Instance.new("TextButton")
+            btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            btn.BorderSizePixel = 0
+            btn.Size = UDim2.new(1, 0, 0, 26)
+            btn.Text = "  " .. opt
+            btn.TextColor3 = Theme.text
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 12
+            btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.ZIndex = 11
+            btn.Parent = listFrame
+            
+            btn.MouseButton1Click:Connect(function()
+                isOpen = false
+                listFrame.Visible = false
+                row.Size = UDim2.new(1, 0, 0, 70)
+                dropBtn.Text = " " .. opt
+                callback(opt)
+            end)
+        end
+    end
+    refreshOptions(options)
+
+    dropBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            local optCount = math.min(#options, 4)
+            listFrame.Size = UDim2.new(1, -30, 0, optCount * 26)
+            row.Size = UDim2.new(1, 0, 0, 70 + (optCount * 26) + 5)
+            listFrame.Visible = true
+        else
+            row.Size = UDim2.new(1, 0, 0, 70)
+            listFrame.Visible = false
+        end
+    end)
+    
+    return refreshOptions
+end
+
+local function addButton(page, title, callback)
+    local btn = Instance.new("TextButton")
+    btn.AutoButtonColor = false
+    btn.BackgroundColor3 = Theme.surface
+    btn.BorderSizePixel = 0
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Text = title
+    btn.TextColor3 = Theme.accent
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.Parent = page
+    corner(btn, 8)
+    local strk = stroke(btn, Theme.accent, 0.6, 1)
+    
+    btn.MouseButton1Click:Connect(function()
+        tween(btn, 0.1, {BackgroundColor3 = Theme.accent, TextColor3 = Theme.text}):Play()
+        task.wait(0.1)
+        tween(btn, 0.1, {BackgroundColor3 = Theme.surface, TextColor3 = Theme.accent}):Play()
+        callback()
+    end)
+end
+
 local function addLabel(page, text)
     local lbl = createText(page, text, 14, Enum.Font.GothamBold, Theme.accent)
     lbl.Size = UDim2.new(1, 0, 0, 20)
 end
 
+-- TABS
 local mainTab = addTab("Main", "🏠")
 addLabel(mainTab, "Visuals")
 addToggle(mainTab, "Enable Role ESP", state.roleEsp, function(v) state.roleEsp = v end)
@@ -511,6 +749,8 @@ local sheriffTab = addTab("Sheriff", "🔫")
 addToggle(sheriffTab, "Auto Pickup Gun", state.autoPickupGun, function(v) state.autoPickupGun = v end)
 addToggle(sheriffTab, "Gun ESP", state.gunEsp, function(v) state.gunEsp = v end)
 addToggle(sheriffTab, "Silent Aim", state.silentAim, function(v) state.silentAim = v end)
+addDropdown(sheriffTab, "AimBot Type", {"Classic", "Prediction", "Headshot"}, "Classic", function(v) state.aimbotType = v end)
+addSlider(sheriffTab, "Flick Speed", 1, 20, 6, function(v) state.flickSpeed = v end)
 addToggle(sheriffTab, "Wallbang", state.wallbang, function(v) state.wallbang = v end)
 addToggle(sheriffTab, "Auto Shoot", state.autoShoot, function(v) state.autoShoot = v end)
 addToggle(sheriffTab, "Auto Kill", state.autoKill, function(v) state.autoKill = v end)
@@ -520,6 +760,33 @@ addLabel(murderTab, "Aura & Targeting")
 addToggle(murderTab, "Kill Aura", state.killAura, function(v) state.killAura = v end)
 addToggle(murderTab, "Kill All", state.killAll, function(v) state.killAll = v end)
 addToggle(murderTab, "Kill Only Sheriff", state.killOnlySheriff, function(v) state.killOnlySheriff = v end)
+
+local playerList = {"None"}
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then table.insert(playerList, p.Name) end
+end
+local updatePlayers = addDropdown(murderTab, "Kill Player", playerList, "None", function(v) state.killPlayerTarget = v end)
+addButton(murderTab, "Kill Selected", function()
+    if state.killPlayerTarget ~= "None" then
+        local target = findPlayerByName(state.killPlayerTarget)
+        local char, root = getCharacterData()
+        local knife = char and char:FindFirstChild("Knife") or (LocalPlayer.Backpack and LocalPlayer.Backpack:FindFirstChild("Knife"))
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and root and knife then
+            knife.Parent = char
+            root.CFrame = target.Character.HumanoidRootPart.CFrame
+            task.wait(0.1)
+            knife:Activate()
+        end
+    end
+end)
+addButton(murderTab, "Refresh Player List", function()
+    local newList = {"None"}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then table.insert(newList, p.Name) end
+    end
+    updatePlayers(newList)
+end)
+
 addLabel(murderTab, "Projectiles")
 addToggle(murderTab, "Knife Throw", state.knifeThrow, function(v) state.knifeThrow = v end)
 addToggle(murderTab, "Knife Throw Aimbot", state.knifeThrowAimbot, function(v) state.knifeThrowAimbot = v end)
@@ -541,27 +808,13 @@ addToggle(funTab, "Jump Power", state.jumppowerEnabled, function(v) state.jumppo
 addSlider(funTab, "Jump Value", 50, 200, 50, function(v) state.jumppower = v end)
 addLabel(funTab, "Misc Options")
 addToggle(funTab, "Touch Fling", state.touchFling, function(v) state.touchFling = v end)
-addToggle(funTab, "Auto Emote (Experimental)", state.autoEmote, function(v) state.autoEmote = v end)
+addToggle(funTab, "Auto Emote", state.autoEmote, function(v) state.autoEmote = v end)
+addDropdown(funTab, "Select Emote", {"Ninja", "Zombie", "Robot", "Vampire"}, "Ninja", function(v) end)
+
+local settingsTab = addTab("Settings", "⚙")
+addLabel(settingsTab, "UI Customization")
+addSlider(settingsTab, "Menu Scale", 50, 150, 100, function(v)
+    windowScale.Scale = v / 100
+end)
 
 tabButtons["Main"].btn.MouseButton1Click:Fire()
-
-local dragging = false
-local dragStart, startPos
-connect(Header.InputBegan, function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = Window.Position
-    end
-end)
-connect(UserInputService.InputChanged, function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = (input.Position - dragStart) / windowScale.Scale
-        Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-connect(UserInputService.InputEnded, function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
