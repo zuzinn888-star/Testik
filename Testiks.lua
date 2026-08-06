@@ -1,5 +1,5 @@
--- Krev Hub MM2 - Compact Edition
--- Fixed UI scaling, small window size, all functions added.
+-- Krev Hub MM2 - Compact Fixed Edition
+-- Fixed window size constraint, smaller compact design, draggable elements, and working features.
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -21,7 +21,7 @@ local function getGuiParent()
 end
 
 local guiParent = getGuiParent()
-local existingGui = guiParent:FindFirstChild("KrevHubMM2")
+local existingGui = guiParent:FindFirstChild("KrevHubMM2Compact")
 if existingGui then existingGui:Destroy() end
 
 local Theme = {
@@ -44,7 +44,7 @@ local state = {
 }
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KrevHubMM2"
+ScreenGui.Name = "KrevHubMM2Compact"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -76,9 +76,10 @@ local function makeDraggable(gui, handle)
     end)
 end
 
+-- Floating Icon Button (Draggable & Small)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.fromOffset(45, 45)
-ToggleBtn.Position = UDim2.new(0.5, -22, 0, 15)
+ToggleBtn.Position = UDim2.new(0, 20, 0.4, 0)
 ToggleBtn.BackgroundColor3 = Theme.panel
 ToggleBtn.Text = "K"
 ToggleBtn.TextColor3 = Theme.accent
@@ -94,8 +95,9 @@ tStroke.Thickness = 2
 tStroke.Parent = ToggleBtn
 makeDraggable(ToggleBtn)
 
+-- Compact Fixed Size Window
 local Window = Instance.new("Frame")
-Window.Size = UDim2.fromOffset(550, 320)
+Window.Size = UDim2.fromOffset(480, 280)
 Window.Position = UDim2.fromScale(0.5, 0.5)
 Window.AnchorPoint = Vector2.new(0.5, 0.5)
 Window.BackgroundColor3 = Theme.background
@@ -114,7 +116,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
 end)
 
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 35)
+Header.Size = UDim2.new(1, 0, 0, 32)
 Header.BackgroundColor3 = Theme.panel
 Header.Parent = Window
 local hCorner = Instance.new("UICorner")
@@ -124,45 +126,45 @@ makeDraggable(Window, Header)
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.fromOffset(15, 0)
+Title.Position = UDim2.fromOffset(12, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "Krev Hub | MM2"
 Title.TextColor3 = Theme.text
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
+Title.TextSize = 13
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = Header
 
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.fromOffset(35, 35)
-CloseBtn.Position = UDim2.new(1, -35, 0, 0)
+CloseBtn.Size = UDim2.fromOffset(32, 32)
+CloseBtn.Position = UDim2.new(1, -32, 0, 0)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Text = "×"
 CloseBtn.TextColor3 = Theme.muted
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 18
+CloseBtn.TextSize = 16
 CloseBtn.Parent = Header
 CloseBtn.MouseButton1Click:Connect(function() Window.Visible = false end)
 
 local Sidebar = Instance.new("ScrollingFrame")
-Sidebar.Size = UDim2.new(0, 130, 1, -35)
-Sidebar.Position = UDim2.fromOffset(0, 35)
+Sidebar.Size = UDim2.new(0, 115, 1, -32)
+Sidebar.Position = UDim2.fromOffset(0, 32)
 Sidebar.BackgroundColor3 = Theme.panel
 Sidebar.BorderSizePixel = 0
 Sidebar.ScrollBarThickness = 0
 Sidebar.Parent = Window
 local sLayout = Instance.new("UIListLayout")
-sLayout.Padding = UDim.new(0, 5)
+sLayout.Padding = UDim.new(0, 4)
 sLayout.Parent = Sidebar
 local sPad = Instance.new("UIPadding")
-sPad.PaddingTop = UDim.new(0, 5)
-sPad.PaddingLeft = UDim.new(0, 5)
-sPad.PaddingRight = UDim.new(0, 5)
+sPad.PaddingTop = UDim.new(0, 4)
+sPad.PaddingLeft = UDim.new(0, 4)
+sPad.PaddingRight = UDim.new(0, 4)
 sPad.Parent = Sidebar
 
 local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -130, 1, -35)
-Content.Position = UDim2.fromOffset(130, 35)
+Content.Size = UDim2.new(1, -115, 1, -32)
+Content.Position = UDim2.fromOffset(115, 32)
 Content.BackgroundTransparency = 1
 Content.Parent = Window
 
@@ -172,13 +174,13 @@ local elementCount = 0
 
 local function addTab(name)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.Size = UDim2.new(1, 0, 0, 28)
     btn.BackgroundColor3 = Theme.surface
     btn.BackgroundTransparency = 1
-    btn.Text = "  " .. name
+    btn.Text = " " .. name
     btn.TextColor3 = Theme.muted
     btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 12
+    btn.TextSize = 11
     btn.TextXAlignment = Enum.TextXAlignment.Left
     btn.Parent = Sidebar
     local c = Instance.new("UICorner")
@@ -186,15 +188,15 @@ local function addTab(name)
     c.Parent = btn
 
     local page = Instance.new("ScrollingFrame")
-    page.Size = UDim2.new(1, -20, 1, -20)
-    page.Position = UDim2.fromOffset(10, 10)
+    page.Size = UDim2.new(1, -16, 1, -16)
+    page.Position = UDim2.fromOffset(8, 8)
     page.BackgroundTransparency = 1
     page.ScrollBarThickness = 2
     page.ScrollBarImageColor3 = Theme.accent
     page.Visible = false
     page.Parent = Content
     local pLayout = Instance.new("UIListLayout")
-    pLayout.Padding = UDim.new(0, 8)
+    pLayout.Padding = UDim.new(0, 6)
     pLayout.SortOrder = Enum.SortOrder.LayoutOrder
     pLayout.Parent = page
 
@@ -216,12 +218,12 @@ end
 local function addLabel(page, text)
     elementCount = elementCount + 1
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 15)
+    lbl.Size = UDim2.new(1, 0, 0, 14)
     lbl.BackgroundTransparency = 1
     lbl.Text = text
     lbl.TextColor3 = Theme.accent
     lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 12
+    lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.LayoutOrder = elementCount
     lbl.Parent = page
@@ -230,28 +232,28 @@ end
 local function addToggle(page, text, default, callback)
     elementCount = elementCount + 1
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 35)
+    row.Size = UDim2.new(1, 0, 0, 30)
     row.BackgroundColor3 = Theme.surface
     row.LayoutOrder = elementCount
     row.Parent = page
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 6)
+    c.CornerRadius = UDim.new(0, 5)
     c.Parent = row
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -50, 1, 0)
-    lbl.Position = UDim2.fromOffset(10, 0)
+    lbl.Size = UDim2.new(1, -45, 1, 0)
+    lbl.Position = UDim2.fromOffset(8, 0)
     lbl.BackgroundTransparency = 1
     lbl.Text = text
     lbl.TextColor3 = Theme.text
     lbl.Font = Enum.Font.GothamMedium
-    lbl.TextSize = 12
+    lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = row
 
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.fromOffset(36, 18)
-    btn.Position = UDim2.new(1, -46, 0.5, -9)
+    btn.Size = UDim2.fromOffset(32, 16)
+    btn.Position = UDim2.new(1, -40, 0.5, -8)
     btn.BackgroundColor3 = default and Theme.accent or Color3.fromRGB(45, 45, 50)
     btn.Text = ""
     btn.Parent = row
@@ -260,8 +262,8 @@ local function addToggle(page, text, default, callback)
     bc.Parent = btn
 
     local knob = Instance.new("Frame")
-    knob.Size = UDim2.fromOffset(14, 14)
-    knob.Position = UDim2.new(default and 1 or 0, default and -16 or 2, 0.5, -7)
+    knob.Size = UDim2.fromOffset(12, 12)
+    knob.Position = UDim2.new(default and 1 or 0, default and -14 or 2, 0.5, -6)
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.Parent = btn
     local kc = Instance.new("UICorner")
@@ -272,7 +274,7 @@ local function addToggle(page, text, default, callback)
     btn.MouseButton1Click:Connect(function()
         val = not val
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = val and Theme.accent or Color3.fromRGB(45, 45, 50)}):Play()
-        TweenService:Create(knob, TweenInfo.new(0.2), {Position = UDim2.new(val and 1 or 0, val and -16 or 2, 0.5, -7)}):Play()
+        TweenService:Create(knob, TweenInfo.new(0.2), {Position = UDim2.new(val and 1 or 0, val and -14 or 2, 0.5, -6)}):Play()
         callback(val)
     end)
 end
@@ -280,39 +282,39 @@ end
 local function addSlider(page, text, min, max, default, callback)
     elementCount = elementCount + 1
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 45)
+    row.Size = UDim2.new(1, 0, 0, 38)
     row.BackgroundColor3 = Theme.surface
     row.LayoutOrder = elementCount
     row.Parent = page
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 6)
+    c.CornerRadius = UDim.new(0, 5)
     c.Parent = row
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -50, 0, 20)
-    lbl.Position = UDim2.fromOffset(10, 2)
+    lbl.Size = UDim2.new(1, -40, 0, 16)
+    lbl.Position = UDim2.fromOffset(8, 2)
     lbl.BackgroundTransparency = 1
     lbl.Text = text
     lbl.TextColor3 = Theme.text
     lbl.Font = Enum.Font.GothamMedium
-    lbl.TextSize = 11
+    lbl.TextSize = 10
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = row
 
     local valLbl = Instance.new("TextLabel")
-    valLbl.Size = UDim2.fromOffset(30, 20)
-    valLbl.Position = UDim2.new(1, -40, 0, 2)
+    valLbl.Size = UDim2.fromOffset(30, 16)
+    valLbl.Position = UDim2.new(1, -35, 0, 2)
     valLbl.BackgroundTransparency = 1
     valLbl.Text = tostring(default)
     valLbl.TextColor3 = Theme.accent
     valLbl.Font = Enum.Font.GothamBold
-    valLbl.TextSize = 11
+    valLbl.TextSize = 10
     valLbl.TextXAlignment = Enum.TextXAlignment.Right
     valLbl.Parent = row
 
     local bar = Instance.new("TextButton")
-    bar.Size = UDim2.new(1, -20, 0, 4)
-    bar.Position = UDim2.new(0, 10, 0, 28)
+    bar.Size = UDim2.new(1, -16, 0, 4)
+    bar.Position = UDim2.new(0, 8, 0, 24)
     bar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     bar.Text = ""
     bar.Parent = row
@@ -352,16 +354,16 @@ end
 local function addBtn(page, text, callback)
     elementCount = elementCount + 1
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.Size = UDim2.new(1, 0, 0, 26)
     btn.BackgroundColor3 = Theme.surface
     btn.Text = text
     btn.TextColor3 = Theme.accent
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 12
+    btn.TextSize = 11
     btn.LayoutOrder = elementCount
     btn.Parent = page
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 6)
+    c.CornerRadius = UDim.new(0, 5)
     c.Parent = btn
     btn.MouseButton1Click:Connect(callback)
 end
@@ -369,34 +371,34 @@ end
 local function addDropdown(page, text, options, callback)
     elementCount = elementCount + 1
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 55)
+    row.Size = UDim2.new(1, 0, 0, 48)
     row.BackgroundColor3 = Theme.surface
     row.LayoutOrder = elementCount
     row.ClipsDescendants = true
     row.Parent = page
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 6)
+    c.CornerRadius = UDim.new(0, 5)
     c.Parent = row
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -20, 0, 20)
-    lbl.Position = UDim2.fromOffset(10, 5)
+    lbl.Size = UDim2.new(1, -16, 0, 16)
+    lbl.Position = UDim2.fromOffset(8, 4)
     lbl.BackgroundTransparency = 1
     lbl.Text = text
     lbl.TextColor3 = Theme.text
     lbl.Font = Enum.Font.GothamMedium
-    lbl.TextSize = 11
+    lbl.TextSize = 10
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = row
 
     local dBtn = Instance.new("TextButton")
-    dBtn.Size = UDim2.new(1, -20, 0, 22)
-    dBtn.Position = UDim2.fromOffset(10, 25)
+    dBtn.Size = UDim2.new(1, -16, 0, 20)
+    dBtn.Position = UDim2.fromOffset(8, 22)
     dBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     dBtn.Text = " " .. options[1]
     dBtn.TextColor3 = Theme.accent
     dBtn.Font = Enum.Font.GothamBold
-    dBtn.TextSize = 11
+    dBtn.TextSize = 10
     dBtn.TextXAlignment = Enum.TextXAlignment.Left
     dBtn.Parent = row
     local dc = Instance.new("UICorner")
@@ -404,8 +406,8 @@ local function addDropdown(page, text, options, callback)
     dc.Parent = dBtn
 
     local list = Instance.new("ScrollingFrame")
-    list.Size = UDim2.new(1, -20, 0, 80)
-    list.Position = UDim2.fromOffset(10, 50)
+    list.Size = UDim2.new(1, -16, 0, 60)
+    list.Position = UDim2.fromOffset(8, 45)
     list.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     list.BorderSizePixel = 0
     list.ScrollBarThickness = 2
@@ -418,17 +420,17 @@ local function addDropdown(page, text, options, callback)
         for _, v in pairs(list:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
         for _, o in pairs(opts) do
             local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1, 0, 0, 20)
+            b.Size = UDim2.new(1, 0, 0, 18)
             b.BackgroundTransparency = 1
             b.Text = "  " .. o
             b.TextColor3 = Theme.text
             b.Font = Enum.Font.Gotham
-            b.TextSize = 11
+            b.TextSize = 10
             b.TextXAlignment = Enum.TextXAlignment.Left
             b.Parent = list
             b.MouseButton1Click:Connect(function()
                 isOpen = false
-                row.Size = UDim2.new(1, 0, 0, 55)
+                row.Size = UDim2.new(1, 0, 0, 48)
                 dBtn.Text = " " .. o
                 callback(o)
             end)
@@ -438,7 +440,7 @@ local function addDropdown(page, text, options, callback)
 
     dBtn.MouseButton1Click:Connect(function()
         isOpen = not isOpen
-        row.Size = isOpen and UDim2.new(1, 0, 0, 135) or UDim2.new(1, 0, 0, 55)
+        row.Size = isOpen and UDim2.new(1, 0, 0, 110) or UDim2.new(1, 0, 0, 48)
     end)
     return refresh
 end
@@ -497,9 +499,15 @@ addSlider(pFun, "Walk Speed", 16, 150, 16, function(v) state.ws = v end)
 addToggle(pFun, "Jump Power Toggle", false, function(v) state.jpEnabled = v end)
 addSlider(pFun, "Jump Power", 50, 200, 50, function(v) state.jp = v end)
 addToggle(pFun, "Touch Fling", false, function(v) state.touchFling = v end)
-addDropdown(pFun, "Emotes", {"Default", "Ninja", "Zombie"}, function(v) end)
 
 tabs["Main"].btn.MouseButton1Click:Fire()
+
+local espFolder = Workspace:FindFirstChild("KrevHubESP")
+if not espFolder then
+    espFolder = Instance.new("Folder")
+    espFolder.Name = "KrevHubESP"
+    espFolder.Parent = Workspace
+end
 
 local function getRole(player)
     local char = player.Character
@@ -515,6 +523,33 @@ RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
+    espFolder:ClearAllChildren()
+    if state.roleEsp then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local role = getRole(player)
+                local color = Color3.fromRGB(50, 230, 120)
+                if role == "Murderer" then color = Color3.fromRGB(255, 60, 90) elseif role == "Sheriff" then color = Color3.fromRGB(0, 220, 255) end
+                local hl = Instance.new("Highlight")
+                hl.Adornee = player.Character
+                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                hl.FillColor = color
+                hl.FillTransparency = 0.6
+                hl.Parent = espFolder
+            end
+        end
+    end
+    if state.gunEsp then
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj.Name == "GunDrop" and obj:IsA("BasePart") then
+                local hl = Instance.new("Highlight")
+                hl.Adornee = obj
+                hl.FillColor = Color3.fromRGB(0, 220, 255)
+                hl.Parent = espFolder
+            end
+        end
+    end
+
     if state.wsEnabled and char then
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then hum.WalkSpeed = state.ws end
